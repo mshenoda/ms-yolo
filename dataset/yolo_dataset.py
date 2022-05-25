@@ -64,7 +64,9 @@ def create_dataloader(img_list_path, train_proportion, val_proportion, test_prop
         transforms.ColorJitter(0.2, 0.4, 0.5, 0.05),
         transforms.RandomAutocontrast(0.3),
         transforms.Resize((input_size, input_size)),
-        transforms.RandomGrayscale(p=0.1),
+        transforms.RandomApply([
+            transforms.GaussianBlur(kernel_size=(5, 5), sigma=(0.1, 3))
+        ], p=0.3),
         transforms.ToTensor()
     ])
 
