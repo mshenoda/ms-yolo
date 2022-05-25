@@ -1,8 +1,10 @@
 # dataset images folder
-images: data/voc/all_images.txt
+images: data/voc/all_images.txt # path to image list as txt file
 
-# dataset labels folder
-labels: data/voc/labels/
+split_ratio: 
+  train: 0.7    # ratio of training images
+  valid: 0.15   # ratio of validation images
+  test: 0.15    # ratio of testing images
 
 # class names
 class_names: [

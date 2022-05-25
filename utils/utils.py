@@ -6,7 +6,7 @@ from collections import Counter
 from models import YoloTiny
 
 
-def xywhc2label(bboxs, S, B, num_classes):
+def encode(bboxs, S, B, num_classes):
     # bboxs is a xywhc list: [(x,y,w,h,c),(x,y,w,h,c),....]
     label = np.zeros((S, S, 5 * B + num_classes))
     for x, y, w, h, c in bboxs:
@@ -21,7 +21,7 @@ def xywhc2label(bboxs, S, B, num_classes):
     return label
 
 
-def pred2xywhcc(pred, S, B, num_classes, conf_thresh, iou_thresh):
+def decode(pred, S, B, num_classes, conf_thresh, iou_thresh):
     bboxs = torch.zeros((S * S, 5 + num_classes))  # 49*25
     for x in range(S):
         for y in range(S):
@@ -58,8 +58,8 @@ def nms(bboxs, num_classes, conf_thresh=0.1, iou_thresh=0.3):
                 continue
             for j in range(i + 1, bboxs.shape[0]):
                 if bbox_cls_spec_conf[rank[j], c] != 0:
-                    iou = calculate_iou(bboxs[rank[i], 0:4], bboxs[rank[j], 0:4])
-                    if iou > iou_thresh:
+                    curr_iou = iou(bboxs[rank[i], 0:4], bboxs[rank[j], 0:4])
+                    if curr_iou > iou_thresh:
                         bbox_cls_spec_conf[rank[j], c] = 0
 
     # exclude cls-specific confidence score=0
@@ -82,7 +82,7 @@ def nms(bboxs, num_classes, conf_thresh=0.1, iou_thresh=0.3):
     return ret
 
 
-def calculate_iou(bbox1, bbox2):
+def iou(bbox1, bbox2):
     # bbox: x y w h
     bbox1, bbox2 = bbox1.cpu().detach().numpy().tolist(), bbox2.cpu().detach().numpy().tolist()
 
@@ -102,21 +102,10 @@ def calculate_iou(bbox1, bbox2):
         return intersect / (area1 + area2 - intersect)
 
 
-def parse_cfg(cfg_path):
-    # cfg = {}
-    # with open(cfg_path, 'r') as f:
-    #     lines = f.readlines()
-    #     for line in lines:
-    #         if line[0] == '#' or line == '\n':
-    #             continue
-    #         line = line.strip().split(':')
-    #         key, value = line[0].strip(), line[1].strip()
-    #         cfg[key] = value
-
-    with open(cfg_path, 'r') as f:
-        cfg = yaml.load(f, Loader=yaml.FullLoader)  # dict
-    print('Config:', cfg)
-    return cfg
+def load_yaml(yaml_path):
+    with open(yaml_path, 'r') as f:
+        yaml_cfg = yaml.load(f, Loader=yaml.FullLoader)  # dict
+    return yaml_cfg
 
 
 def build_model(weight_path, S, B, num_classes):

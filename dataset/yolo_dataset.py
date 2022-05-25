@@ -6,18 +6,14 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
 
-from .util import xywhc2label
+from utils import encode
 
-
-class YOLODataset(Dataset):
+class YoloDataset(Dataset):
     def __init__(self, img_list_path, S, B, num_classes, transforms=None):
         with open(img_list_path, "r") as img_list_file:
             self.img_filenames = img_list_file.readlines()
             
         self.img_filenames = list(map(lambda x:x.strip(), self.img_filenames))
-
-        #self.img_filenames.sort()
-
         self.label_files = []
         for path in self.img_filenames:
             image_dir = os.path.dirname(path)
@@ -57,7 +53,7 @@ class YOLODataset(Dataset):
 
                 xywhc.append((x, y, w, h, c))
 
-        label = xywhc2label(xywhc, self.S, self.B, self.num_classes)  # convert xywhc list to label
+        label = encode(xywhc, self.S, self.B, self.num_classes)  # convert xywhc list to label
         label = torch.Tensor(label)
         return img, label
 
@@ -73,7 +69,7 @@ def create_dataloader(img_list_path, train_proportion, val_proportion, test_prop
     ])
 
     # create yolo dataset
-    dataset = YOLODataset(img_list_path, S, B, num_classes, transforms=transform)
+    dataset = YoloDataset(img_list_path, S, B, num_classes, transforms=transform)
 
     dataset_size = len(dataset)
     train_size = int(dataset_size * train_proportion)
@@ -85,8 +81,8 @@ def create_dataloader(img_list_path, train_proportion, val_proportion, test_prop
     train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
 
     # create data loader
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=12)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=8)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=6)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
 
     return train_loader, val_loader, test_loader

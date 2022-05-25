@@ -8,21 +8,43 @@ import numpy as np
 from PIL import Image
 from torchvision import transforms
 
-from utils import parse_cfg, pred2xywhcc, build_model
+from utils import load_yaml, build_model, decode
 
 parser = argparse.ArgumentParser(description='YOLOv1 Pytorch Implementation')
-parser.add_argument("--weights", "-w", default="weights/epoch2.pt", help="Path of model weight", type=str)
+parser.add_argument("--weights", "-w", default="weights/old/epoch17.pt", help="Path of model weight", type=str)
 parser.add_argument("--source", "-s", default="data/samples", help="Path of your input image, video, directory", type=str)
 parser.add_argument('--output', "-o", default='output', help='Output folder', type=str)
-parser.add_argument("--cfg", "-c", default="cfg/yolov1.yaml", help="Your model config path", type=str)
-parser.add_argument("--dataset_cfg", "-d", default="cfg/dataset.yaml", help="Your dataset config path", type=str)
+parser.add_argument("--cfg", "-c", default="models/yolov1.yaml", help="Your model config path", type=str)
+parser.add_argument("--dataset", "-d", default="dataset/voc.yaml", help="Your dataset config path", type=str)
 parser.add_argument('--conf_thresh', "-ct", default=0.2, help='prediction confidence thresh', type=float)
-parser.add_argument('--iou_thresh', "-it", default=0.4, help='prediction iou thresh', type=float)
+parser.add_argument('--iou_thresh', "-it", default=0.44, help='prediction iou thresh', type=float)
 args = parser.parse_args()
 
 # random colors
-COLORS = [[random.randint(0, 255) for _ in range(3)] for _ in range(100)]
-
+COLORS = [
+[0, 0, 255],
+[255, 0, 0],
+[255, 140, 0],
+[221, 160, 221],
+[186, 85, 211],
+[0, 250, 154],
+[0, 255, 255],
+[255, 0, 255],
+[30, 144, 255],
+[250, 128, 114],
+[255, 255, 84],
+[127, 255, 0],
+[255, 20, 147],
+[135, 206, 250],
+[250, 25, 215],
+[0, 100, 0],
+[47, 79, 79],
+[46, 139, 87],
+[127, 0, 0],
+[128, 128, 0],
+[0, 0, 139],
+]
+#[[random.randint(0, 255) for _ in range(3)] for _ in range(100)]
 
 def draw_bbox(img, bboxs, class_names):
     h, w = img.shape[0:2]
@@ -40,15 +62,6 @@ def draw_bbox(img, bboxs, class_names):
 
 
 def predict_img(img, model, input_size, S, B, num_classes, conf_thresh, iou_thresh):
-    """get model prediction of one image
-
-    Args:
-        img: image ndarray
-        model: pytorch trained model
-        input_size: input size
-    Returns:
-        xywhcc: predict image bbox
-    """
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     pred_img = Image.fromarray(img).convert('RGB')
 
@@ -60,17 +73,19 @@ def predict_img(img, model, input_size, S, B, num_classes, conf_thresh, iou_thre
     pred_img.unsqueeze_(0)
 
     pred = model(pred_img)[0].detach().cpu()
-    xywhcc = pred2xywhcc(pred, S, B, num_classes, conf_thresh, iou_thresh)
+    xywhcc = decode(pred, S, B, num_classes, conf_thresh, iou_thresh)
 
     return xywhcc
 
 
 if __name__ == "__main__":
     # load configs from config file
-    cfg = parse_cfg(args.cfg)
+    cfg = load_yaml(args.cfg)
+    print('cfg:', cfg)
     input_size = cfg['input_size']
-    dataset_cfg = parse_cfg(args.dataset_cfg)
-    class_names = dataset_cfg['class_names']
+    dataset = load_yaml(args.dataset)
+    print('dataset:', dataset)
+    class_names = dataset['class_names']
     print('Class names:', class_names)
     S, B, num_classes = cfg['S'], cfg['B'], cfg['num_classes']
     conf_thresh, iou_thresh, source = args.conf_thresh, args.iou_thresh, args.source
