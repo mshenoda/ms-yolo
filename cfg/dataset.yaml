@@ -1,0 +1,29 @@
+# dataset images folder
+images: data/voc/all_images.txt
+
+# dataset labels folder
+labels: data/voc/labels/
+
+# class names
+class_names: [
+'aeroplane',
+'bicycle',
+'bird',
+'boat',
+'bottle',
+'bus',
+'car',
+'cat',
+'chair',
+'cow',
+'diningtable',
+'dog',
+'horse',
+'motorbike',
+'person',
+'pottedplant',
+'sheep',
+'sofa',
+'train',
+'tvmonitor',
+]
