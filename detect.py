@@ -1,16 +1,9 @@
 import argparse
-import imp
 import os
-import random
 import shutil
 import torch
 import cv2
-import numpy as np
-from PIL import Image
-from torchvision import transforms
-
-from utils import load_yaml, decode, draw_detection
-from models import create_model
+from utils import load_yaml, draw_detection
 from utils.detector import Detector
 
 parser = argparse.ArgumentParser(description='YOLOv1 Pytorch Implementation')
@@ -19,8 +12,8 @@ parser.add_argument("--source", "-s", default="data/samples", help="Path of your
 parser.add_argument('--output', "-o", default='output', help='Output folder', type=str)
 parser.add_argument("--cfg", "-c", default="models/yolov1.yaml", help="Your model config path", type=str)
 parser.add_argument("--dataset", "-d", default="datasets/voc.yaml", help="Your dataset config path", type=str)
-parser.add_argument('--conf', "-cnf", default=0.15, help='prediction confidence thresh', type=float)
-parser.add_argument('--iou', "-iou", default=0.45, help='prediction iou thresh', type=float)
+parser.add_argument('--conf', "-cnf", default=0.125, help='prediction confidence thresh', type=float)
+parser.add_argument('--iou', "-iou", default=0.35, help='prediction iou thresh', type=float)
 args = parser.parse_args()
 
 torch.manual_seed(32)
