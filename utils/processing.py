@@ -1,10 +1,6 @@
 import numpy as np
 import torch
-import yaml
 from collections import Counter
-
-from models import YoloTiny
-
 
 def encode(bboxs, S, B, num_classes):
     # bboxs is a xywhc list: [(x,y,w,h,c),(x,y,w,h,c),....]
@@ -41,6 +37,24 @@ def decode(pred, S, B, num_classes, conf_thresh, iou_thresh):
     xywhcc = nms(bboxs, num_classes, conf_thresh, iou_thresh)
     return xywhcc
 
+def iou(bbox1, bbox2):
+    # bbox: x y w h
+    bbox1, bbox2 = bbox1.cpu().detach().numpy().tolist(), bbox2.cpu().detach().numpy().tolist()
+
+    area1 = bbox1[2] * bbox1[3]  # bbox1's area
+    area2 = bbox2[2] * bbox2[3]  # bbox2's area
+
+    max_left = max(bbox1[0] - bbox1[2] / 2, bbox2[0] - bbox2[2] / 2)
+    min_right = min(bbox1[0] + bbox1[2] / 2, bbox2[0] + bbox2[2] / 2)
+    max_top = max(bbox1[1] - bbox1[3] / 2, bbox2[1] - bbox2[3] / 2)
+    min_bottom = min(bbox1[1] + bbox1[3] / 2, bbox2[1] + bbox2[3] / 2)
+
+    if max_left >= min_right or max_top >= min_bottom:
+        return 0
+    else:
+        # iou = intersect / union
+        intersect = (min_right - max_left) * (min_bottom - max_top)
+        return intersect / (area1 + area2 - intersect)
 
 def nms(bboxs, num_classes, conf_thresh=0.1, iou_thresh=0.3):
     # Non-Maximum Suppression, bboxs is a 98*15 tensor
@@ -81,36 +95,3 @@ def nms(bboxs, num_classes, conf_thresh=0.1, iou_thresh=0.3):
     ret[:, 5] = torch.argmax(bboxs[:, 5:], dim=1).int()
     return ret
 
-
-def iou(bbox1, bbox2):
-    # bbox: x y w h
-    bbox1, bbox2 = bbox1.cpu().detach().numpy().tolist(), bbox2.cpu().detach().numpy().tolist()
-
-    area1 = bbox1[2] * bbox1[3]  # bbox1's area
-    area2 = bbox2[2] * bbox2[3]  # bbox2's area
-
-    max_left = max(bbox1[0] - bbox1[2] / 2, bbox2[0] - bbox2[2] / 2)
-    min_right = min(bbox1[0] + bbox1[2] / 2, bbox2[0] + bbox2[2] / 2)
-    max_top = max(bbox1[1] - bbox1[3] / 2, bbox2[1] - bbox2[3] / 2)
-    min_bottom = min(bbox1[1] + bbox1[3] / 2, bbox2[1] + bbox2[3] / 2)
-
-    if max_left >= min_right or max_top >= min_bottom:
-        return 0
-    else:
-        # iou = intersect / union
-        intersect = (min_right - max_left) * (min_bottom - max_top)
-        return intersect / (area1 + area2 - intersect)
-
-
-def load_yaml(yaml_path):
-    with open(yaml_path, 'r') as f:
-        yaml_cfg = yaml.load(f, Loader=yaml.FullLoader)  # dict
-    return yaml_cfg
-
-
-def build_model(weight_path, S, B, num_classes):
-    model = YoloTiny(S, B, num_classes)
-    # load pretrained model
-    if weight_path and weight_path != '':
-        model.load_state_dict(torch.load(weight_path))
-    return model

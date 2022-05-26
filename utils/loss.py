@@ -1,8 +1,7 @@
 import torch
 from torch import nn
 
-from .utils import iou
-
+from .processing import iou
 
 class YoloLoss(nn.Module):
     def __init__(self, S, B):
@@ -24,17 +23,6 @@ class YoloLoss(nn.Module):
                 for x in range(self.S):
                     # this region has object
                     if targets[i, y, x, 4] == 1:
-                        # convert x,y to x,y
-                        # pred_bbox1 = torch.Tensor(
-                        #     [(preds[i, x, y, 0] + x) / 7, (preds[i, x, y, 1] + y) / 7, preds[i, x, y, 2],
-                        #      preds[i, x, y, 3]])
-                        # pred_bbox2 = torch.Tensor(
-                        #     [(preds[i, x, y, 5] + x) / 7, (preds[i, x, y, 6] + y) / 7, preds[i, x, y, 7],
-                        #      preds[i, x, y, 8]])
-                        # true_bbox = torch.Tensor(
-                        #     [(targets[i, x, y, 0] + x) / 7, (targets[i, x, y, 1] + y) / 7, targets[i, x, y, 2],
-                        #      labetargetsls[i, x, y, 3]])
-
                         pred_bbox1 = torch.Tensor(
                             [preds[i, y, x, 0], preds[i, y, x, 1], preds[i, y, x, 2], preds[i, y, x, 3]])
                         pred_bbox2 = torch.Tensor(
@@ -56,11 +44,9 @@ class YoloLoss(nn.Module):
 
                             # obj confidence loss
                             loss_obj += (iou1 - preds[i, y, x, 4]) ** 2
-                            # loss_obj += (preds[i, y, x, 4] - 1) ** 2
 
                             # no obj confidence loss
                             loss_no_obj += 0.5 * ((0 - preds[i, y, x, 9]) ** 2)
-                            # loss_no_obj += 0.5 * ((preds[i, y, x, 9] - 0) ** 2)
                         else:
                             # coord xy loss
                             loss_coord_xy += 5 * torch.sum((targets[i, y, x, 5:7] - preds[i, y, x, 5:7]) ** 2)
@@ -70,11 +56,9 @@ class YoloLoss(nn.Module):
 
                             # obj confidence loss
                             loss_obj += (iou2 - preds[i, y, x, 9]) ** 2
-                            # loss_obj += (preds[i, y, x, 9] - 1) ** 2
 
                             # no obj confidence loss
                             loss_no_obj += 0.5 * ((0 - preds[i, y, x, 4]) ** 2)
-                            # loss_no_obj += 0.5 * ((preds[i, y, x, 4] - 0) ** 2)
 
                         # class loss
                         loss_class += torch.sum((targets[i, y, x, 10:] - preds[i, y, x, 10:]) ** 2)
@@ -88,7 +72,4 @@ class YoloLoss(nn.Module):
             # end for x
         # end for batch size
 
-        # print(loss_coord_xy, loss_coord_wh, loss_obj, loss_no_obj, loss_class)
-
-        # five loss terms
-        return (loss_coord_xy + loss_coord_wh + loss_obj + loss_no_obj + loss_class) / batch_size
+        return (loss_coord_xy + loss_coord_wh + loss_obj + loss_no_obj + loss_class) / batch_size   # loss 

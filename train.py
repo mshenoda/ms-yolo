@@ -9,13 +9,14 @@ from torch.optim import SGD
 from torchvision import utils
 from torch.utils.tensorboard import SummaryWriter
 
-from utils import YoloLoss, load_yaml, build_model
-from dataset import create_dataloader
+from utils import YoloLoss, load_yaml
+from models import create_model
+from datasets import create_dataloader
 
 parser = argparse.ArgumentParser(description='YOLOv1-pytorch')
 parser.add_argument("--cfg", "-c", default="models/yolov1.yaml", help="Yolov1 config file path", type=str)
 parser.add_argument("--weights", "-w", default="", help="Pretrained model weights path", type=str)
-parser.add_argument("--dataset", "-d", default="dataset/voc.yaml", help="Dataset config file path", type=str)
+parser.add_argument("--dataset", "-d", default="datasets/voc.yaml", help="Dataset config file path", type=str)
 parser.add_argument("--output", "-o", default="output", help="Output path", type=str)
 parser.add_argument("--epochs", "-e", default=135, help="Training epochs", type=int)
 parser.add_argument("--lr", "-lr", default=0.0005, help="Training learning rate", type=float)
@@ -120,7 +121,7 @@ if __name__ == "__main__":
         device = torch.device("cpu")
 
     # build model
-    model = build_model(args.weights, S, B, num_classes).to(device)
+    model = create_model(args.weights, S, B, num_classes).to(device)
 
     # get data loader
     train_loader, val_loader, test_loader = create_dataloader(img_list_path, 0.7, 0.15, 0.15, args.batch_size,

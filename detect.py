@@ -1,24 +1,28 @@
 import argparse
+import imp
 import os
 import random
 import shutil
-
+import torch
 import cv2
 import numpy as np
 from PIL import Image
 from torchvision import transforms
 
-from utils import load_yaml, build_model, decode
+from utils import load_yaml, decode, draw_bbox
+from models import create_model
 
 parser = argparse.ArgumentParser(description='YOLOv1 Pytorch Implementation')
 parser.add_argument("--weights", "-w", default="weights/old/epoch17.pt", help="Path of model weight", type=str)
 parser.add_argument("--source", "-s", default="data/samples", help="Path of your input image, video, directory", type=str)
 parser.add_argument('--output', "-o", default='output', help='Output folder', type=str)
 parser.add_argument("--cfg", "-c", default="models/yolov1.yaml", help="Your model config path", type=str)
-parser.add_argument("--dataset", "-d", default="dataset/voc.yaml", help="Your dataset config path", type=str)
-parser.add_argument('--conf_thresh', "-ct", default=0.2, help='prediction confidence thresh', type=float)
-parser.add_argument('--iou_thresh', "-it", default=0.44, help='prediction iou thresh', type=float)
+parser.add_argument("--dataset", "-d", default="datasets/voc.yaml", help="Your dataset config path", type=str)
+parser.add_argument('--conf_thresh', "-ct", default=0.25, help='prediction confidence thresh', type=float)
+parser.add_argument('--iou_thresh', "-it", default=0.45, help='prediction iou thresh', type=float)
 args = parser.parse_args()
+
+torch.manual_seed(32)
 
 # random colors
 COLORS = [
@@ -44,24 +48,8 @@ COLORS = [
 [128, 128, 0],
 [0, 0, 139],
 ]
-#[[random.randint(0, 255) for _ in range(3)] for _ in range(100)]
 
-def draw_bbox(img, bboxs, class_names):
-    h, w = img.shape[0:2]
-    n = bboxs.size()[0]
-    bboxs = bboxs.detach().numpy()
-    print(bboxs)
-    for i in range(n):
-        p1 = (int((bboxs[i, 0] - bboxs[i, 2] / 2) * w), int((bboxs[i, 1] - bboxs[i, 3] / 2) * h))
-        p2 = (int((bboxs[i, 0] + bboxs[i, 2] / 2) * w), int((bboxs[i, 1] + bboxs[i, 3] / 2) * h))
-        class_name = class_names[int(bboxs[i, 5])]
-        # confidence = bboxs[i, 4]
-        cv2.rectangle(img, p1, p2, color=COLORS[int(bboxs[i, 5])], thickness=2)
-        cv2.putText(img, class_name, p1, cv2.FONT_HERSHEY_SIMPLEX, 0.8, COLORS[int(bboxs[i, 5])])
-    return img
-
-
-def predict_img(img, model, input_size, S, B, num_classes, conf_thresh, iou_thresh):
+def detect(img, model, input_size, S, B, num_classes, conf_thresh, iou_thresh):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     pred_img = Image.fromarray(img).convert('RGB')
 
@@ -91,7 +79,7 @@ if __name__ == "__main__":
     conf_thresh, iou_thresh, source = args.conf_thresh, args.iou_thresh, args.source
 
     # load model
-    model = build_model(args.weights, S, B, num_classes)
+    model = create_model(args.weights, S, B, num_classes)
     print('Model loaded successfully!')
 
     # create output folder
@@ -103,9 +91,9 @@ if __name__ == "__main__":
         img = cv2.imread(source)
         img_name = os.path.basename(source)
 
-        xywhcc = predict_img(img, model, input_size, S, B, num_classes, conf_thresh, iou_thresh)
+        xywhcc = detect(img, model, input_size, S, B, num_classes, conf_thresh, iou_thresh)
         if xywhcc.size()[0] != 0:
-            img = draw_bbox(img, xywhcc, class_names)
+            img = draw_bbox(img, xywhcc, class_names, COLORS)
             # save output img
             cv2.imwrite(os.path.join(args.output, img_name), img)
 
@@ -118,9 +106,9 @@ if __name__ == "__main__":
                 print('Video loaded failed!')
                 break
 
-            xywhcc = predict_img(frame, model, input_size, S, B, num_classes, conf_thresh, iou_thresh)
+            xywhcc = detect(frame, model, input_size, S, B, num_classes, conf_thresh, iou_thresh)
             if xywhcc.size()[0] != 0:
-                frame = draw_bbox(frame, xywhcc, class_names)
+                frame = draw_bbox(frame, xywhcc, class_names, COLORS)
 
             cv2.resizeWindow('frame', int(cap.get(3)), int(cap.get(4)))
             cv2.imshow("frame", frame)
@@ -144,9 +132,9 @@ if __name__ == "__main__":
             img = cv2.imdecode(np.fromfile(os.path.join(
                 source, img_name), dtype=np.uint8), cv2.IMREAD_COLOR)
             # predict
-            xywhcc = predict_img(img, model, input_size, S, B, num_classes, conf_thresh, iou_thresh)
+            xywhcc = detect(img, model, input_size, S, B, num_classes, conf_thresh, iou_thresh)
             if xywhcc.size()[0] != 0:
-                img = draw_bbox(img.copy(), xywhcc, class_names)
+                img = draw_bbox(img.copy(), xywhcc, class_names, COLORS)
                 # save output img
                 cv2.imwrite(os.path.join(output, img_name), img)
             print(img_name)

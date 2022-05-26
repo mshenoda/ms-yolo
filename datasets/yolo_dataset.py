@@ -5,11 +5,12 @@ import torch
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
+from utils.transforms import RandomHorizontalFlip, RandomVerticalFlip, RandomBlur
 
 from utils import encode
 
 class YoloDataset(Dataset):
-    def __init__(self, img_list_path, S, B, num_classes, transforms=None):
+    def __init__(self, img_list_path, S, B, num_classes, transforms=None, img_box_transforms=None):
         with open(img_list_path, "r") as img_list_file:
             self.img_filenames = img_list_file.readlines()
             
@@ -25,6 +26,7 @@ class YoloDataset(Dataset):
             self.label_files.append(label_file)
 
         self.transforms = transforms
+        self.img_box_transforms = img_box_transforms
         
         self.S = S
         self.B = B
@@ -37,7 +39,8 @@ class YoloDataset(Dataset):
         # read image
         img_filename = self.img_filenames[idx]
         img = Image.open(img_filename, mode='r')
-        img = self.transforms(img)  # resize and to tensor
+        if self.transforms is not None:
+            img = self.transforms(img)
 
         # read each image's corresponding label(.txt)
         xywhc = []
@@ -52,6 +55,10 @@ class YoloDataset(Dataset):
                 c, x, y, w, h = int(line[0]), float(line[1]), float(line[2]), float(line[3]), float(line[4])
 
                 xywhc.append((x, y, w, h, c))
+                
+        if self.img_box_transforms is not None:
+            for t in self.img_box_transforms:
+                img, xywhc = t(img, xywhc)
 
         label = encode(xywhc, self.S, self.B, self.num_classes)  # convert xywhc list to label
         label = torch.Tensor(label)
@@ -61,17 +68,20 @@ class YoloDataset(Dataset):
 def create_dataloader(img_list_path, train_proportion, val_proportion, test_proportion, batch_size, input_size,
                       S, B, num_classes):
     transform = transforms.Compose([
-        transforms.ColorJitter(0.2, 0.4, 0.5, 0.05),
+        transforms.ColorJitter(0.2, 0.7, 0.7, 0.1),
         transforms.RandomAutocontrast(0.3),
+        RandomBlur(kernel_size=[5,5], sigma=[0.2, 2], p=0.2),
+        transforms.RandomGrayscale(p=0.1),
         transforms.Resize((input_size, input_size)),
-        transforms.RandomApply([
-            transforms.GaussianBlur(kernel_size=(5, 5), sigma=(0.1, 3))
-        ], p=0.3),
         transforms.ToTensor()
     ])
+    img_box_transform = [
+        RandomHorizontalFlip(0.5),
+        RandomVerticalFlip(0.1)
+    ]
 
     # create yolo dataset
-    dataset = YoloDataset(img_list_path, S, B, num_classes, transforms=transform)
+    dataset = YoloDataset(img_list_path, S, B, num_classes, transforms=transform, img_box_transforms=img_box_transform)
 
     dataset_size = len(dataset)
     train_size = int(dataset_size * train_proportion)
