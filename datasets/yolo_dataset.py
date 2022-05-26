@@ -1,12 +1,9 @@
 import os
-
-import cv2
 import torch
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
 from utils.transforms import RandomHorizontalFlip, RandomVerticalFlip, RandomBlur
-
 from utils import encode
 
 class YoloDataset(Dataset):
@@ -42,8 +39,8 @@ class YoloDataset(Dataset):
         if self.transforms is not None:
             img = self.transforms(img)
 
-        # read each image's corresponding label(.txt)
-        xywhc = []
+        # read each image's corresponding label (.txt)
+        labels = []
         with open(self.label_files[idx], 'r') as f:
             lines = f.readlines()
             for line in lines:
@@ -54,15 +51,15 @@ class YoloDataset(Dataset):
                 # convert xywh str to float, class str to int
                 c, x, y, w, h = int(line[0]), float(line[1]), float(line[2]), float(line[3]), float(line[4])
 
-                xywhc.append((x, y, w, h, c))
+                labels.append((x, y, w, h, c))
                 
         if self.img_box_transforms is not None:
             for t in self.img_box_transforms:
                 img, xywhc = t(img, xywhc)
 
-        label = encode(xywhc, self.S, self.B, self.num_classes)  # convert xywhc list to label
-        label = torch.Tensor(label)
-        return img, label
+        encoded_labels = encode(xywhc, self.S, self.B, self.num_classes)  # convert label list to encoded label
+        encoded_labels = torch.Tensor(encoded_labels)
+        return img, encoded_labels
 
 
 def create_dataloader(img_list_path, train_proportion, val_proportion, test_proportion, batch_size, input_size,
@@ -70,7 +67,7 @@ def create_dataloader(img_list_path, train_proportion, val_proportion, test_prop
     transform = transforms.Compose([
         transforms.ColorJitter(0.2, 0.7, 0.7, 0.1),
         transforms.RandomAutocontrast(0.3),
-        RandomBlur(kernel_size=[5,5], sigma=[0.2, 2], p=0.2),
+        RandomBlur(kernel_size=[5,5], sigma=[0.2, 2], p=0.1),
         transforms.RandomGrayscale(p=0.1),
         transforms.Resize((input_size, input_size)),
         transforms.ToTensor()

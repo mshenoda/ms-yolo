@@ -75,7 +75,7 @@ def nms(bboxes, num_classes, conf_thresh=0.1, iou_thresh=0.3):
                     if curr_iou > iou_thresh:
                         bbox_cls_spec_conf[rank[j], c] = 0
 
-    # exclude cls-specific confidence score=0
+    # exclude class specific confidence score=0
     bboxes = bboxes[torch.max(bbox_cls_spec_conf, dim=1).values > 0]
 
     bbox_cls_spec_conf = bbox_cls_spec_conf[torch.max(bbox_cls_spec_conf, dim=1).values > 0]

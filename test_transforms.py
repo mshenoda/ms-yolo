@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 from utils import load_yaml
 from torchvision import transforms
 from utils.transforms import RandomHorizontalFlip, RandomVerticalFlip, RandomBlur
+from datasets.voc_colors import COLORS
 
 parser = argparse.ArgumentParser(description='YOLOv1-pytorch')
 parser.add_argument("--cfg", "-c", default="models/yolov1.yaml", help="Yolov1 config file path", type=str)
@@ -72,23 +73,25 @@ class YoloTestDataset(Dataset):
         label = torch.Tensor(xywhc)
         return img, label
 
+def absolute_points(x, y, w, h):
+    x1, x2 = x - w / 2, x + w / 2
+    y1, y2 = y - h / 2, y + h / 2
+    return (int(x1), int(y1)), (int(x2), int(y2))
 
-def test(idx, img_filenames, label_files):
+def get_img_labels(idx, img_filenames, label_files):
     img_filename = img_filenames[idx]
-    img = cv2.imread(img_filename, mode='r')
-    xywhc = []
+    img = cv2.imread(img_filename)
+    labels = []
     with open(label_files[idx], 'r') as f:
         lines = f.readlines()
         for line in lines:
             if line == '\n':
                 continue
             line = line.strip().split(' ')
-
-            # convert xywh str to float, class str to int
             c, x, y, w, h = int(line[0]), float(line[1]), float(line[2]), float(line[3]), float(line[4])
+            labels.append((x, y, w, h, c))
+    return img, labels
 
-            xywhc.append((x, y, w, h, c))
-    
 
 if __name__ == "__main__":
     cfg = load_yaml(args.cfg)
@@ -130,6 +133,14 @@ if __name__ == "__main__":
         label_file = os.path.join(label_dir, os.path.basename(path))
         label_file = os.path.splitext(label_file)[0] + '.txt'
         label_files.append(label_file)
-
-    for idx in len(label_files):
-        test(idx, img_filenames, label_files)
+    rflip = RandomHorizontalFlip()
+    for idx in range(len(label_files)):
+        img, labels = get_img_labels(idx, img_filenames, label_files)
+        rflip.forward(img, labels)
+        for x, y, w, h, c in labels:
+            p1, p2 = absolute_points(x, y, w, h)
+            cv2.rectangle(img, p1, p2, color=COLORS[c], thickness=2)
+            #cv2.putText(img, str(c), p1, cv2.FONT_HERSHEY_TRIPLEX, 0.9, COLORS[int(c)])
+        cv2.imshow("img", img)
+        if cv2.waitKey() & 0xFF == ord('q'):
+            break
