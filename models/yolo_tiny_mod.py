@@ -7,7 +7,7 @@ class YoloTinyMod(nn.Module):
         self.B = B
         self.num_classes = num_classes
 
-        # conv part
+        # convolution
         self.conv_layers = nn.Sequential(
             nn.Conv2d(3, 32, 7, stride=1, padding=1),
             nn.BatchNorm2d(32),

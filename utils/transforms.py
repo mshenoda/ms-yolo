@@ -27,7 +27,7 @@ class RandomHorizontalFlip(nn.Module):
         self.p = probability
 
     def forward(self, img, bboxes):
-        # bbox is (x, y, w, h, c)
+        # bbox format is x, y, w, h, c
         if torch.rand(1) < self.p:
             img = F.hflip(img)
             result_bboxes = []
@@ -45,7 +45,7 @@ class RandomVerticalFlip(nn.Module):
         self.p = probability
 
     def __call__(self, img, bboxes):
-        # bbox is (x, y, w, h, c)
+        # bbox format is x, y, w, h, c
         if torch.rand(1)  < self.p:
             img = F.vflip(img)
             result_bboxes = []

@@ -67,9 +67,4 @@ class YoloLoss(nn.Module):
                     else:
                         loss_no_obj += 0.5 * torch.sum((0 - preds[i, y, x, [4, 9]]) ** 2)
 
-                    # end labels have object
-                # end for y
-            # end for x
-        # end for batch size
-
         return (loss_coord_xy + loss_coord_wh + loss_obj + loss_no_obj + loss_class) / batch_size   # loss 
