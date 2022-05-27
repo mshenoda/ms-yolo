@@ -19,14 +19,14 @@ parser.add_argument("--weights", "-w", default="", help="Pretrained model weight
 parser.add_argument("--dataset", "-d", default="datasets/voc.yaml", help="Dataset config file path", type=str)
 parser.add_argument("--output", "-o", default="output", help="Output path", type=str)
 parser.add_argument("--epochs", "-e", default=135, help="Training epochs", type=int)
-parser.add_argument("--lr", "-lr", default=0.005, help="Training learning rate", type=float)
+parser.add_argument("--lr", "-lr", default=0.0005, help="Training learning rate", type=float)
 parser.add_argument("--batch_size", "-bs", default=64, help="Training batch size", type=int)
 parser.add_argument("--save_freq", "-sf", default=1, help="Frequency of saving model checkpoint when training", type=int)
 parser.add_argument('--tboard', action='store_true', default=False, help='use tensorboard')
-parser.add_argument("--cuda", "-cu", action='store_true', default=False, help='use cuda')
+parser.add_argument("--cuda", "-cu", action='store_true', default=True, help='use cuda')
 args = parser.parse_args()
 
-torch.manual_seed(7)
+torch.manual_seed(32)
 
 def train(model, train_loader, optimizer, epoch, device, S, B, train_loss_lst, writer):
     model.train()  # Set the module in training mode
@@ -115,11 +115,11 @@ if __name__ == "__main__":
     output_path = os.path.join(args.output, 'train', start)
     os.makedirs(output_path)
     
-    if args.cuda == "cpu":
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    else:
-        device = torch.device("cpu")
-
+    # if args.cuda == "cpu":
+    #     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # else:
+    #     device = torch.device("cpu")
+    device = torch.device("cuda", 3)
     # build model
     model = create_model(args.weights, S, B, num_classes).to(device)
 

@@ -55,9 +55,9 @@ class YoloDataset(Dataset):
                 
         if self.img_box_transforms is not None:
             for t in self.img_box_transforms:
-                img, xywhc = t(img, xywhc)
+                img, labels = t(img, labels)
 
-        encoded_labels = encode(xywhc, self.S, self.B, self.num_classes)  # convert label list to encoded label
+        encoded_labels = encode(labels, self.S, self.B, self.num_classes)  # convert label list to encoded label
         encoded_labels = torch.Tensor(encoded_labels)
         return img, encoded_labels
 
@@ -66,7 +66,7 @@ def create_dataloader(img_list_path, train_proportion, val_proportion, test_prop
                       S, B, num_classes):
     transform = transforms.Compose([
         transforms.Resize((input_size, input_size)),
-        transforms.ColorJitter(0.2, 0.7, 0.7, 0.1),
+        transforms.ColorJitter(0.2, 0.5, 0.7, 0.07),
         transforms.RandomAdjustSharpness(3, p=0.2),
         RandomBlur(kernel_size=[3,3], sigma=[0.1, 2], p=0.1),
         transforms.RandomGrayscale(p=0.1),
@@ -75,7 +75,7 @@ def create_dataloader(img_list_path, train_proportion, val_proportion, test_prop
     img_box_transform = [
         RandomHorizontalFlip(0.5),
         RandomVerticalFlip(0.05),
-        RandomRotationJitter()
+        #RandomRotationJitter()
     ]
 
     # create yolo dataset

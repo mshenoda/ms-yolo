@@ -79,8 +79,8 @@ class RandomRotationJitter(nn.Module):
                 w_scale = 1+(angle/img.size[0])+0.01
                 h_scale = 1+(angle/img.size[1])+0.01
                 result_bboxes.append((x+x_shift, y+y_shift, w*w_scale, h*h_scale, c))
-            return (img, result_bboxes)
-        return (img, bboxes)
+            return img, result_bboxes
+        return img, bboxes
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(p={self.p})"
