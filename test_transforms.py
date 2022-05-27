@@ -3,11 +3,12 @@ import os
 import time
 import cv2
 from PIL import Image
+import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
 from utils import load_yaml
 from torchvision import transforms
-from utils.transforms import RandomHorizontalFlip, RandomVerticalFlip, RandomBlur
+from utils.transforms import RandomHorizontalFlip, RandomVerticalFlip, RandomBlur, RandomRotationJitter
 from datasets.voc_colors import COLORS
 
 parser = argparse.ArgumentParser(description='YOLOv1-pytorch')
@@ -73,14 +74,21 @@ class YoloTestDataset(Dataset):
         label = torch.Tensor(xywhc)
         return img, label
 
-def absolute_points(x, y, w, h):
-    x1, x2 = x - w / 2, x + w / 2
-    y1, y2 = y - h / 2, y + h / 2
+def absolute_points(x, y, w, h, img_size):
+    imgW = img_size[1]
+    imgH = img_size[0]
+    x1, x2 = x - (w / 2), x + (w / 2)
+    y1, y2 = y - (h / 2), y + (h / 2)
+    x1 *= imgW
+    x2 *= imgW
+    y1 *= imgH
+    y2 *= imgH
     return (int(x1), int(y1)), (int(x2), int(y2))
 
 def get_img_labels(idx, img_filenames, label_files):
     img_filename = img_filenames[idx]
-    img = cv2.imread(img_filename)
+    #img = cv2.imread(img_filename)
+    img = Image.open(img_filename, mode='r')
     labels = []
     with open(label_files[idx], 'r') as f:
         lines = f.readlines()
@@ -107,18 +115,18 @@ if __name__ == "__main__":
     output_path = os.path.join(args.output, 'train', start)
     os.makedirs(output_path)
     
-    # transform = transforms.Compose([
-    #     transforms.ColorJitter(0.2, 0.7, 0.7, 0.1),
-    #     transforms.RandomAutocontrast(0.3),
-    #     RandomBlur(kernel_size=[5,5], sigma=[0.2, 2], p=0.2),
-    #     transforms.RandomGrayscale(p=0.1),
-    #     transforms.Resize((input_size, input_size)),
-    #     transforms.ToTensor()
-    # ])
-    # img_box_transform = [
-    #     RandomHorizontalFlip(0.5),
-    #     RandomVerticalFlip(0.1)
-    # ]
+    transform = [
+        transforms.Resize((input_size, input_size)),
+        transforms.ColorJitter(0.2, 0.7, 0.7, 0.1),
+        transforms.RandomAdjustSharpness(3, p=0.2),
+        RandomBlur(kernel_size=[3,3], sigma=[0.1, 2], p=0.1),
+        transforms.RandomGrayscale(p=0.1)
+    ]
+    img_box_transform = [
+        RandomHorizontalFlip(0.5),
+        RandomVerticalFlip(0.05),
+        RandomRotationJitter()
+    ]
 
     with open(img_list_path, "r") as img_list_file:
         img_filenames = img_list_file.readlines()
@@ -133,14 +141,27 @@ if __name__ == "__main__":
         label_file = os.path.join(label_dir, os.path.basename(path))
         label_file = os.path.splitext(label_file)[0] + '.txt'
         label_files.append(label_file)
-    rflip = RandomHorizontalFlip()
-    for idx in range(len(label_files)):
+
+    idx = 0
+    while idx < len(label_files):
         img, labels = get_img_labels(idx, img_filenames, label_files)
-        rflip.forward(img, labels)
+        for t in transform:
+            img = t(img)
+        for ibt in img_box_transform:
+            img, labels = ibt(img, labels)
+        img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
         for x, y, w, h, c in labels:
-            p1, p2 = absolute_points(x, y, w, h)
-            cv2.rectangle(img, p1, p2, color=COLORS[c], thickness=2)
-            #cv2.putText(img, str(c), p1, cv2.FONT_HERSHEY_TRIPLEX, 0.9, COLORS[int(c)])
+            p1, p2 = absolute_points(x, y, w, h, img_size=img.shape)
+            img = cv2.rectangle(img, p1, p2, color=COLORS[c], thickness=2)
+            img = cv2.putText(img, str(c), p1, cv2.FONT_HERSHEY_TRIPLEX, 0.9, COLORS[int(c)])
         cv2.imshow("img", img)
-        if cv2.waitKey() & 0xFF == ord('q'):
+        key = cv2.waitKey()
+        if key == ord('a'):
+            idx -=1 
+            continue
+        if key == ord('d'):
+            idx +=1 
+            continue
+        if key == ord('q'):
             break
+        idx += 1

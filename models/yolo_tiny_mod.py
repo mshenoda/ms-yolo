@@ -45,6 +45,8 @@ class YoloTinyMod(nn.Module):
             nn.Conv2d(512, 256, 3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(0.1, inplace=True),
+
+            nn.AdaptiveAvgPool2d((5,5))
         )
 
         # fully connected

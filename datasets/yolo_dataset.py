@@ -3,7 +3,7 @@ import torch
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
-from utils.transforms import RandomHorizontalFlip, RandomVerticalFlip, RandomBlur
+from utils.transforms import RandomHorizontalFlip, RandomVerticalFlip, RandomRotationJitter, RandomBlur
 from utils import encode
 
 class YoloDataset(Dataset):
@@ -65,16 +65,17 @@ class YoloDataset(Dataset):
 def create_dataloader(img_list_path, train_proportion, val_proportion, test_proportion, batch_size, input_size,
                       S, B, num_classes):
     transform = transforms.Compose([
-        transforms.ColorJitter(0.2, 0.7, 0.7, 0.1),
-        transforms.RandomAutocontrast(0.3),
-        RandomBlur(kernel_size=[5,5], sigma=[0.2, 2], p=0.1),
-        transforms.RandomGrayscale(p=0.1),
         transforms.Resize((input_size, input_size)),
+        transforms.ColorJitter(0.2, 0.7, 0.7, 0.1),
+        transforms.RandomAdjustSharpness(3, p=0.2),
+        RandomBlur(kernel_size=[3,3], sigma=[0.1, 2], p=0.1),
+        transforms.RandomGrayscale(p=0.1),
         transforms.ToTensor()
     ])
     img_box_transform = [
         RandomHorizontalFlip(0.5),
-        RandomVerticalFlip(0.1)
+        RandomVerticalFlip(0.05),
+        RandomRotationJitter()
     ]
 
     # create yolo dataset
@@ -90,7 +91,7 @@ def create_dataloader(img_list_path, train_proportion, val_proportion, test_prop
     train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
 
     # create data loader
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=8)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
 
