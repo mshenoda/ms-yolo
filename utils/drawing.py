@@ -1,6 +1,14 @@
+import imp
 import cv2
+import numpy as np
+from PIL import Image
+from datasets.voc_colors import COLORS
 
-def draw_detection(img, bboxs, class_names, colors):
+def draw_detection(img, bboxs, class_names, colors=None):
+    if colors is None:
+        colors = COLORS
+    if img is Image:
+        img = np.array(img)
     h, w = img.shape[0:2]
     n = bboxs.size()[0]
     bboxs = bboxs.detach().numpy()

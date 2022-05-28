@@ -1,5 +1,6 @@
 # dataset images folder
 images: data/voc/all_images.txt # path to image list as txt file
+images_eval: data/voc/eval.txt
 
 split_ratio: 
   train: 0.7    # ratio of training images

@@ -16,7 +16,7 @@ parser.add_argument('--conf', "-cnf", default=0.125, help='prediction confidence
 parser.add_argument('--iou', "-iou", default=0.35, help='prediction iou thresh', type=float)
 args = parser.parse_args()
 
-torch.manual_seed(32)
+torch.manual_seed(33)
 
 # 20 colors
 COLORS = [

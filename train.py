@@ -11,7 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from utils import YoloLoss, load_yaml
 from models import create_model
-from datasets import create_dataloader
+from datasets import create_dataloaders
 
 parser = argparse.ArgumentParser(description='YOLOv1-pytorch')
 parser.add_argument("--cfg", "-c", default="models/yolov1.yaml", help="Yolov1 config file path", type=str)
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     model = create_model(args.weights, S, B, num_classes).to(device)
 
     # get data loader
-    train_loader, val_loader, test_loader = create_dataloader(img_list_path, 0.7, 0.15, 0.15, args.batch_size,
+    train_loader, val_loader, test_loader = create_dataloaders(img_list_path, 0.7, 0.15, 0.15, args.batch_size,
                                                               input_size, S, B, num_classes)
 
     optimizer = SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=0.0005)
