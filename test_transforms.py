@@ -11,11 +11,10 @@ from torchvision import transforms
 from utils.transforms import RandomHorizontalFlip, RandomVerticalFlip, RandomBlur, RandomRotationJitter
 from datasets.voc_colors import COLORS
 
-parser = argparse.ArgumentParser(description='YOLOv1-pytorch')
-parser.add_argument("--cfg", "-c", default="models/yolov1.yaml", help="Yolov1 config file path", type=str)
-parser.add_argument("--dataset", "-d", default="datasets/voc.yaml", help="Dataset config file path", type=str)
-parser.add_argument("--output", "-o", default="output", help="Output path", type=str)
-parser.add_argument("--batch_size", "-bs", default=4, help="Training batch size", type=int)
+parser = argparse.ArgumentParser(description='YOLO')
+parser.add_argument("--cfg", "-c", default="config/model.yaml", help="model config file", type=str)
+parser.add_argument("--dataset", "-d", default="config/dataset.yaml", help="dataset config file", type=str)
+parser.add_argument("--batch_size", "-bs", default=4, help="batch size", type=int)
 
 args = parser.parse_args()
 
@@ -51,28 +50,22 @@ class YoloTestDataset(Dataset):
         # read image
         img_filename = self.img_filenames[idx]
         img = Image.open(img_filename, mode='r')
-        # if self.transforms is not None:
-        #     img = self.transforms(img)
-
-        # read each image's corresponding label(.txt)
-        xywhc = []
+  
+        bbox = []
         with open(self.label_files[idx], 'r') as f:
             lines = f.readlines()
             for line in lines:
                 if line == '\n':
                     continue
                 line = line.strip().split(' ')
-
-                # convert xywh str to float, class str to int
                 c, x, y, w, h = int(line[0]), float(line[1]), float(line[2]), float(line[3]), float(line[4])
-
-                xywhc.append((x, y, w, h, c))
+                bbox.append((x, y, w, h, c))
                 
         if self.img_box_transforms is not None:
             for t in self.img_box_transforms:
-                img, xywhc = t(img, xywhc)
-        label = torch.Tensor(xywhc)
-        return img, label
+                img, bbox = t(img, bbox)
+        tensor = torch.Tensor(bbox)
+        return img, tensor
 
 def absolute_points(x, y, w, h, img_size):
     imgW = img_size[1]
@@ -106,15 +99,10 @@ if __name__ == "__main__":
     print('cfg:', cfg)
     dataset = load_yaml(args.dataset)
     print('dataset:', dataset)
-    #img_path, label_path = dataset_cfg['images'], dataset_cfg['labels']
+
     img_list_path = dataset['images']
     S, B, num_classes, input_size = cfg['S'], cfg['B'], cfg['num_classes'], cfg['input_size']
 
-    # create output file folder
-    start = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
-    output_path = os.path.join(args.output, 'train', start)
-    os.makedirs(output_path)
-    
     transform = [
         transforms.Resize((input_size, input_size)),
         transforms.ColorJitter(0.2, 0.7, 0.7, 0.1),
@@ -156,12 +144,12 @@ if __name__ == "__main__":
             img = cv2.putText(img, str(c), p1, cv2.FONT_HERSHEY_TRIPLEX, 0.9, COLORS[int(c)])
         cv2.imshow("img", img)
         key = cv2.waitKey()
-        if key == ord('a'):
+        if key == ord('a'): # next
             idx -=1 
             continue
-        if key == ord('d'):
+        if key == ord('d'): # previous
             idx +=1 
             continue
-        if key == ord('q'):
+        if key == ord('q'): # quit
             break
         idx += 1

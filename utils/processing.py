@@ -31,9 +31,9 @@ def decode(pred, S, B, num_classes, conf_thresh, iou_thresh):
                 bboxes[(x * S + y), 4] = pred[x, y, 9]
                 bboxes[(x * S + y), 5:] = pred[x, y, 10:]
 
-    # apply NMS to all bboxes
-    xywhcc = nms(bboxes, num_classes, conf_thresh, iou_thresh)
-    return xywhcc
+    # apply NMS to all bounding boxes
+    decoded_bbox = nms(bboxes, num_classes, conf_thresh, iou_thresh)
+    return decoded_bbox # x y w h c
 
 def iou(bbox1, bbox2):
     # bbox: x y w h
@@ -56,29 +56,28 @@ def iou(bbox1, bbox2):
 
 def nms(bboxes, num_classes, conf_thresh=0.1, iou_thresh=0.3):
     # Non-Maximum Suppression
-
     bbox_prob = bboxes[:, 5:].clone().detach()
     bbox_conf = bboxes[:, 4].clone().detach().unsqueeze(1).expand_as(bbox_prob)
-    bbox_cls_spec_conf = bbox_conf * bbox_prob 
-    bbox_cls_spec_conf[bbox_cls_spec_conf <= conf_thresh] = 0
+    class_conf = bbox_conf * bbox_prob 
+    class_conf[class_conf <= conf_thresh] = 0
 
-    # for each class, sort the class specific confidence
+    # for each class, sort the class confidence
     for c in range(num_classes):
-        rank = torch.sort(bbox_cls_spec_conf[:, c], descending=True).indices  # sort conf
+        rank = torch.sort(class_conf[:, c], descending=True).indices 
         # for each bbox
         for i in range(bboxes.shape[0]):
-            if bbox_cls_spec_conf[rank[i], c] == 0:
+            if class_conf[rank[i], c] == 0:
                 continue
             for j in range(i + 1, bboxes.shape[0]):
-                if bbox_cls_spec_conf[rank[j], c] != 0:
+                if class_conf[rank[j], c] != 0:
                     curr_iou = iou(bboxes[rank[i], 0:4], bboxes[rank[j], 0:4])
                     if curr_iou > iou_thresh:
-                        bbox_cls_spec_conf[rank[j], c] = 0
+                        class_conf[rank[j], c] = 0
 
-    # exclude class specific confidence score=0
-    bboxes = bboxes[torch.max(bbox_cls_spec_conf, dim=1).values > 0]
+    # exclude class confidence score equals to 0
+    bboxes = bboxes[torch.max(class_conf, dim=1).values > 0]
 
-    bbox_cls_spec_conf = bbox_cls_spec_conf[torch.max(bbox_cls_spec_conf, dim=1).values > 0]
+    class_conf = class_conf[torch.max(class_conf, dim=1).values > 0]
 
     ret = torch.ones((bboxes.size()[0], 6))
 
@@ -88,8 +87,8 @@ def nms(bboxes, num_classes, conf_thresh=0.1, iou_thresh=0.3):
 
     # bbox coord
     ret[:, 0:4] = bboxes[:, 0:4]
-    # bbox class-specific confidence scores
-    ret[:, 4] = torch.max(bbox_cls_spec_conf, dim=1).values
+    # bbox class confidence
+    ret[:, 4] = torch.max(class_conf, dim=1).values
     # bbox class
     ret[:, 5] = torch.argmax(bboxes[:, 5:], dim=1).int()
     return ret

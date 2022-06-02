@@ -7,14 +7,14 @@ from utils import load_yaml, draw_detection
 from utils.detector import Detector
 from datasets.voc_colors import COLORS
 
-parser = argparse.ArgumentParser(description='YOLO MS')
+parser = argparse.ArgumentParser(description='YOLO')
 
 parser.add_argument("--type", "-t", default="ms", help="model type", type=str)
-parser.add_argument("--weights", "-w", default="weights/yolo_ms.pt", help="Path of model weight", type=str)
+parser.add_argument("--weights", "-w", default="yolo_ms.pt", help="Path of model weight", type=str)
 parser.add_argument("--source", "-s", default="data/samples", help="Path of your input image, video, directory", type=str)
 parser.add_argument('--output', "-o", default='output', help='Output folder', type=str)
-parser.add_argument("--cfg", "-c", default="models/yolov1.yaml", help="Your model config path", type=str)
-parser.add_argument("--dataset", "-d", default="datasets/voc.yaml", help="Your dataset config path", type=str)
+parser.add_argument("--cfg", "-c", default="config/model.yaml", help="Your model config path", type=str)
+parser.add_argument("--dataset", "-d", default="config/dataset.yaml", help="Your dataset config path", type=str)
 parser.add_argument('--conf', "-cnf", default=0.10, help='prediction confidence thresh', type=float)
 parser.add_argument('--iou', "-iou", default=0.3, help='prediction iou thresh', type=float)
 parser.add_argument("--cuda", "-cu", action='store_true', default=True, help='use cuda')

@@ -15,12 +15,12 @@ from datasets.voc_colors import COLORS
 from models import create_model
 
 
-parser = argparse.ArgumentParser(description='YOLOv1-pytorch')
+parser = argparse.ArgumentParser(description='YOLO')
 parser.add_argument("--type", "-t", default="ms", help="model type", type=str)
-parser.add_argument("--cfg", "-c", default="models/yolov1.yaml", help="Yolov1 config file path", type=str)
-parser.add_argument("--weights", "-w", default="", help="Pretrained model weights path", type=str)
-parser.add_argument("--dataset", "-d", default="datasets/voc.yaml", help="Dataset config file path", type=str)
-parser.add_argument("--output", "-o", default="output", help="Output path", type=str)
+parser.add_argument("--cfg", "-c", default="config/model.yaml", help="model config file", type=str)
+parser.add_argument("--weights", "-w", default="yolo_ms.pt", help="model weights file", type=str)
+parser.add_argument("--dataset", "-d", default="config/dataset.yaml", help="dataset config file", type=str)
+parser.add_argument("--output", "-o", default="output", help="output dir", type=str)
 parser.add_argument('--tboard', action='store_true', default=False, help='use tensorboard')
 parser.add_argument("--cuda", "-cu", action='store_true', default=True, help='use cuda')
 args = parser.parse_args()

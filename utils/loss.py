@@ -12,11 +12,11 @@ class YoloLoss(nn.Module):
     def forward(self, preds, targets):
         batch_size = targets.size(0)
 
-        loss_coord_xy = 0.  # coord xy loss
-        loss_coord_wh = 0.  # coord wh loss
-        loss_obj = 0.  # obj loss
-        loss_no_obj = 0.  # no obj loss
-        loss_class = 0.  # class loss
+        coord_xy_loss = 0.  # coord xy loss
+        coord_wh_loss = 0.  # coord wh loss
+        obj_loss = 0.  # obj loss
+        no_obj_loss = 0.  # no obj loss
+        class_loss = 0.  # class loss
 
         for i in range(batch_size):
             for y in range(self.S):
@@ -37,34 +37,34 @@ class YoloLoss(nn.Module):
                         # judge responsible box
                         if iou1 > iou2:
                             # calculate coord xy loss
-                            loss_coord_xy += 5 * torch.sum((targets[i, y, x, 0:2] - preds[i, y, x, 0:2]) ** 2)
+                            coord_xy_loss += 5 * torch.sum((targets[i, y, x, 0:2] - preds[i, y, x, 0:2]) ** 2)
 
                             # coord wh loss
-                            loss_coord_wh += torch.sum((targets[i, y, x, 2:4].sqrt() - preds[i, y, x, 2:4].sqrt()) ** 2)
+                            coord_wh_loss += torch.sum((targets[i, y, x, 2:4].sqrt() - preds[i, y, x, 2:4].sqrt()) ** 2)
 
                             # obj confidence loss
-                            loss_obj += (iou1 - preds[i, y, x, 4]) ** 2
+                            obj_loss += (iou1 - preds[i, y, x, 4]) ** 2
 
                             # no obj confidence loss
-                            loss_no_obj += 0.5 * ((0 - preds[i, y, x, 9]) ** 2)
+                            no_obj_loss += 0.5 * ((0 - preds[i, y, x, 9]) ** 2)
                         else:
                             # coord xy loss
-                            loss_coord_xy += 5 * torch.sum((targets[i, y, x, 5:7] - preds[i, y, x, 5:7]) ** 2)
+                            coord_xy_loss += 5 * torch.sum((targets[i, y, x, 5:7] - preds[i, y, x, 5:7]) ** 2)
 
                             # coord wh loss
-                            loss_coord_wh += torch.sum((targets[i, y, x, 7:9].sqrt() - preds[i, y, x, 7:9].sqrt()) ** 2)
+                            coord_wh_loss += torch.sum((targets[i, y, x, 7:9].sqrt() - preds[i, y, x, 7:9].sqrt()) ** 2)
 
                             # obj confidence loss
-                            loss_obj += (iou2 - preds[i, y, x, 9]) ** 2
+                            obj_loss += (iou2 - preds[i, y, x, 9]) ** 2
 
                             # no obj confidence loss
-                            loss_no_obj += 0.5 * ((0 - preds[i, y, x, 4]) ** 2)
+                            no_obj_loss += 0.5 * ((0 - preds[i, y, x, 4]) ** 2)
 
                         # class loss
-                        loss_class += torch.sum((targets[i, y, x, 10:] - preds[i, y, x, 10:]) ** 2)
+                        class_loss += torch.sum((targets[i, y, x, 10:] - preds[i, y, x, 10:]) ** 2)
 
                     # this region has no object
                     else:
-                        loss_no_obj += 0.5 * torch.sum((0 - preds[i, y, x, [4, 9]]) ** 2)
+                        no_obj_loss += 0.5 * torch.sum((0 - preds[i, y, x, [4, 9]]) ** 2)
 
-        return (loss_coord_xy + loss_coord_wh + loss_obj + loss_no_obj + loss_class) / batch_size   # loss 
+        return (coord_xy_loss + coord_wh_loss + obj_loss + no_obj_loss + class_loss) / batch_size   # loss 

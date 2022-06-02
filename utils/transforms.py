@@ -72,12 +72,14 @@ class RandomRotationJitter(nn.Module):
         if torch.rand(1)  < self.p:
             angle = random.uniform(self.angle_range[0], self.angle_range[1])
             img = F.rotate(img, angle)
-            result_bboxes = []
+            result_bboxes = list()
+            width = 448 # TODO: change it to be dynamic
+            height = 448 # TODO: change it to be dynamic
             for x, y, w, h, c in bboxes:
-                x_shift = (angle/img.size[0])
-                y_shift = (angle/img.size[1])
-                w_scale = 1+(angle/img.size[0])+0.01
-                h_scale = 1+(angle/img.size[1])+0.01
+                x_shift = angle/width
+                y_shift = angle/height
+                w_scale = 1+(angle/width)+0.01
+                h_scale = 1+(angle/height)+0.01
                 result_bboxes.append((x+x_shift, y+y_shift, w*w_scale, h*h_scale, c))
             return img, result_bboxes
         return img, bboxes
