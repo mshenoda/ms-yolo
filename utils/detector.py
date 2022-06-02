@@ -1,14 +1,16 @@
-import cv2
+import time
+import torch
 from torchvision import transforms
+from torch.profiler import profile, record_function, ProfilerActivity
 from PIL import Image
 from utils import decode
 from models import create_model
 
 class Detector(object):
-    def __init__(self, model_path, input_size, S, B, num_classes):
+    def __init__(self, model_path, input_size, S, B, num_classes, type, device):
         super().__init__()
-        self.model = create_model(model_path, S, B, num_classes)
-        self.transforms = transform = transforms.Compose([
+        self.model = create_model(model_path, S, B, num_classes, type, device)
+        self.transforms = transforms.Compose([
             transforms.Resize((input_size, input_size)),
             transforms.ToTensor()
         ])
@@ -21,6 +23,7 @@ class Detector(object):
         image = self.transforms(image)
         image.unsqueeze_(0)
 
-        pred = self.model(image)[0].detach().cpu()
+        pred = self.model(image)
+        pred = pred[0].detach().cpu()
         
         return decode(pred, self.S, self.B, self.num_classes, conf, iou)

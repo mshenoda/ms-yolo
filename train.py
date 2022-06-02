@@ -9,21 +9,24 @@ from torch.optim import SGD
 from torchvision import utils
 from torch.utils.tensorboard import SummaryWriter
 
-from utils import YoloLoss, load_yaml
+from utils import YoloLoss, load_yaml, metrics
 from models import create_model
 from datasets import create_dataloaders
 
-parser = argparse.ArgumentParser(description='YOLOv1-pytorch')
+parser = argparse.ArgumentParser(description='YOLO MS')
+parser.add_argument("--type", "-t", default="ms", help="model type", type=str)
 parser.add_argument("--cfg", "-c", default="models/yolov1.yaml", help="Yolov1 config file path", type=str)
 parser.add_argument("--weights", "-w", default="", help="Pretrained model weights path", type=str)
 parser.add_argument("--dataset", "-d", default="datasets/voc.yaml", help="Dataset config file path", type=str)
-parser.add_argument("--output", "-o", default="output", help="Output path", type=str)
 parser.add_argument("--epochs", "-e", default=135, help="Training epochs", type=int)
 parser.add_argument("--lr", "-lr", default=0.0005, help="Training learning rate", type=float)
 parser.add_argument("--batch_size", "-bs", default=64, help="Training batch size", type=int)
+parser.add_argument("--output", "-o", default="output", help="Output path", type=str)
 parser.add_argument("--save_freq", "-sf", default=1, help="Frequency of saving model checkpoint when training", type=int)
 parser.add_argument('--tboard', action='store_true', default=False, help='use tensorboard')
-parser.add_argument("--cuda", "-cu", action='store_true', default=True, help='use cuda')
+parser.add_argument("--cuda", "-cu", action='store_true', default=False, help='use cuda')
+
+# parse arguments
 args = parser.parse_args()
 
 torch.manual_seed(32)
@@ -64,9 +67,9 @@ def train(model, train_loader, optimizer, epoch, device, S, B, train_loss_lst, w
 def validate(model, val_loader, device, S, B, val_loss_lst):
     model.eval()  # Sets the module in evaluation mode
     val_loss = 0
-    # no need to calculate gradients
-    with torch.no_grad():
-        for data, target in val_loader:
+    pbar = tqdm(val_loader, leave=True)
+    with torch.no_grad(): # without gradient calculation
+        for data, target in pbar:
             data, target = data.to(device), target.to(device)
             output = model(data)
 
@@ -85,12 +88,12 @@ def validate(model, val_loader, device, S, B, val_loss_lst):
 def test(model, test_loader, device, S, B):
     model.eval()  # Sets the module in evaluation mode
     test_loss = 0
-    # no need to calculate gradients
-    with torch.no_grad():
+
+    with torch.no_grad(): # without gradient calculation
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-
+            metrics.mean_average_precision(output, target)
             # add one batch loss
             criterion = YoloLoss(S, B)
             test_loss += criterion(output, target).item()
@@ -115,11 +118,11 @@ if __name__ == "__main__":
     output_path = os.path.join(args.output, 'train', start)
     os.makedirs(output_path)
     
-    # if args.cuda == "cpu":
-    #     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # else:
-    #     device = torch.device("cpu")
-    device = torch.device("cuda", 3)
+    if args.cuda:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device("cpu")
+
     # build model
     model = create_model(args.weights, S, B, num_classes).to(device)
 

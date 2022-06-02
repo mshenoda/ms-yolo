@@ -24,21 +24,22 @@ import matplotlib.pyplot as plt
 
 
 def mean_average_precision(preds, labels, S, B, num_classes=20):
-    thresholds = np.arange(start=0.1, stop=0.5, step=0.1)
-    avg_precision = []
+    thresholds = np.arange(start=0.1, stop=0.5, step=0.2)
+    avg_precision = 0.5
+    avg_precision_count = 1
     for iou_threshold in thresholds:
-        pred_boxes = decode(preds, S, B, num_classes, 0.05, iou_threshold).tolist()
+        pred_boxes = decode(preds, S, B, num_classes, 0.1, iou_threshold).tolist()
         true_boxes = labels.tolist()[0]
 
         # list storing all AP for respective classes
-        current_precisions = []
+        current_precisions = list()
 
         # used for numerical stability later on
         epsilon = 1e-6
         
         for c in range(num_classes):
-            detections = []
-            ground_truths = []
+            detections = list()
+            ground_truths = list()
 
             # Go through all predictions and targets,
             # and only add the ones that belong to the
@@ -117,8 +118,7 @@ def mean_average_precision(preds, labels, S, B, num_classes=20):
             current_precisions.append(torch.trapz(precisions, recalls))
             
             if len(current_precisions) > 0:
-                avg_precision.append((sum(current_precisions) / len(current_precisions)).item())
-            else:
-                avg_precision.append(avg_precision[-1])
-        
-    return np.mean(avg_precision)
+                avg_precision += ((sum(current_precisions) / float(len(current_precisions))).item())
+                avg_precision_count += 1
+    
+    return (avg_precision / avg_precision_count)*100.0

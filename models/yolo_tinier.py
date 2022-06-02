@@ -1,8 +1,9 @@
 from torch import nn
 
-class YoloTiny(nn.Module):
+# same as tiny but FC size is dropped to 1470
+class YoloTinier(nn.Module):
     def __init__(self, S, B, num_classes):
-        super(YoloTiny, self).__init__()
+        super(YoloTinier, self).__init__()
         self.S = S
         self.B = B
         self.num_classes = num_classes
@@ -50,10 +51,10 @@ class YoloTiny(nn.Module):
 
         # fully connected
         self.fc_layers = nn.Sequential(
-            nn.Linear(9216, 2048),
+            nn.Linear(9216, 1470),
             nn.LeakyReLU(0.1, inplace=True),
             nn.Dropout(p=0.5),
-            nn.Linear(2048, self.S * self.S * (self.B * 5 + self.num_classes)),
+            nn.Linear(1470, self.S * self.S * (self.B * 5 + self.num_classes)),
             nn.ReLU()
         )
 
