@@ -1,7 +1,6 @@
 # Simple Implementation of original Yolo v1 in PyTorch
-## CS583 - Intro to Computer Vision 
-## Michael Shenoda
-## michael.shenoda@drexel.edu
+
+
 ---
 ## required packages
 numpy
